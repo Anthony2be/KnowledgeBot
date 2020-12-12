@@ -8,8 +8,39 @@ import os
 from datetime import datetime
 
 # Discord stuff
+if os.path.isfile('prefixes.json') == False:
+    with open('prefixes.json', 'w') as f:
+        json.dump({}, f)
+        f.close()
+
+def get_prefix(client, message):
+    with open('prefixes.json', 'r') as f:
+        prefixes = json.load(f)
+    return prefixes[str(message.guild.id)]
+
+bot = commands.Bot(command_prefix = get_prefix)
+
+@bot.event
+async def on_guild_join(guild):
+    with open('prefixes.json', 'r') as f:
+        prefixes = json.load(f)
+    prefixes[str(guild.id)] = '^'
+
+    with open('prefixes.json', 'w') as f:
+        json.dump(prefixes, f, indent = 2)
+
+@bot.event
+async def on_guild_remove(guild):
+    with open('prefixes.json', 'r') as f:
+        prefixes = json.load(f)
+    prefixes.pop(str(guild.id))
+
+    with open('prefixes.json', 'w') as f:
+        json.dump(prefixes, f, indent = 2)
+
+
 token = open("token.txt",mode="r")
-bot = commands.Bot(command_prefix='^')
+
 
 # Global variables
 branch = "main"
@@ -33,8 +64,25 @@ async def admin(ctx):
 async def disconnect(ctx):
     await bot.close()
 
+@bot.command(brief = 'Changes the bot\'s prefix', description = 'Changes the bot\'s prefix for the server')
+@commands.has_permissions(administrator = True)
+async def prefix(ctx, prefix):
+    with open('prefixes.json', 'r') as f:
+        prefixes = json.load(f)
+    prefixes[str(ctx.guild.id)] = prefix
+
+    with open('prefixes.json', 'w') as f:
+        json.dump(prefixes, f, indent = 2)
+    await ctx.send('Changed the prefix to `' + prefix + '`')
+
+@bot.event
+async def on_command_error(ctx, error):
+    await ctx.send(error)
+
 @bot.event
 async def on_ready():
     print("Connected!")
+
+
 
 bot.run(token.read())
